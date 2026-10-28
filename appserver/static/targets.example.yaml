@@ -1,0 +1,58 @@
+# Device list for gnmic. Copy to config/targets.yaml, or edit the copy the
+# installer places in /etc/gnmic/targets.yaml (Linux) or
+# /usr/local/etc/gnmi-collector/targets.yaml (macOS).
+#
+# Username, password, and TLS defaults come from the settings at the top of
+# install.sh. Uncomment one block per device. Remove a subscription name if
+# that network OS rejects the path.
+#
+# Default gNMI ports:
+#   Cisco IOS XE     9339
+#   Cisco IOS XR     57400
+#   Cisco NX-OS      50051
+#   Junos            32767
+#   Arista EOS       6030
+#   Nokia SR OS      57400
+#   Nokia SR Linux   57400
+#   Huawei VRP       57400   (gNMI dial-in, not Huawei's private dial-out)
+
+targets:
+  # ios-xe-1:
+  #   address: 10.0.0.1:9339
+  #   subscriptions: [interface-counters, interface-status, cpu, memory, lldp, bgp]
+  #   outputs: [otlp, events]
+
+  # ios-xr-1:
+  #   address: 10.0.0.2:57400
+  #   subscriptions: [interface-counters, interface-status, cpu, memory, lldp, bgp]
+  #   outputs: [otlp, events]
+
+  # nxos-1:
+  #   address: 10.0.0.3:50051
+  #   subscriptions: [interface-counters, interface-status, cpu, memory, lldp, bgp]
+  #   outputs: [otlp, events]
+
+  # junos-1:
+  #   address: 10.0.0.4:32767
+  #   subscriptions: [interface-counters, interface-status, cpu, memory, lldp, bgp]
+  #   outputs: [otlp, events]
+
+  # eos-1:
+  #   address: 10.0.0.5:6030
+  #   subscriptions: [interface-counters, interface-status, cpu, memory, lldp, bgp]
+  #   outputs: [otlp, events]
+
+  # sros-1:
+  #   address: 10.0.0.6:57400
+  #   subscriptions: [interface-counters, interface-status, cpu, memory, lldp, bgp]
+  #   outputs: [otlp, events]
+
+  # srlinux-1:
+  #   address: 10.0.0.8:57400
+  #   subscriptions: [interface-counters, interface-status, cpu, memory, lldp, bgp]
+  #   outputs: [otlp, events]
+
+  # huawei-1:
+  #   address: 10.0.0.7:57400
+  #   subscriptions: [interface-counters, interface-status, cpu, memory, lldp, bgp]
+  #   outputs: [otlp, events]

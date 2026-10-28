@@ -1,0 +1,97 @@
+<dashboard version="1.1" script="setup.js" stylesheet="setup.css">
+  <label>Build</label>
+  <description>Step 5 of 5. Write the bundle, then watch installer output, events, and metrics.</description>
+  <init>
+    <set token="ops_index">gnmi_ops</set>
+    <set token="events_index">gnmi</set>
+    <set token="metrics_index">gnmi_metrics</set>
+    <set token="setup_sourcetype">gnmi:setup</set>
+    <set token="runtime_sourcetype">gnmi:runtime</set>
+  </init>
+  <row>
+    <panel>
+      <html>
+        <div class="gnmi-intro">
+          <h2>Build</h2>
+          <p>This uses the values from the earlier steps. On a lab server it creates the indexes and the HEC token. Download the zip for another host, or install gnmic and the collector on this server as the Splunk user. The tables underneath show installer lines and any gNMI data that arrives.</p>
+        </div>
+        <div id="gnmi-page" data-step="build"></div>
+        <div id="gnmi-form-host"></div>
+        <div id="gnmi-result"></div>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel id="gnmi_install_live">
+      <title>Install on this server: live installer output (latest run, refreshes every 3 seconds)</title>
+      <table>
+        <search>
+          <query>index="$ops_index$" sourcetype="$setup_sourcetype$" run=*
+| eventstats max(run) AS latest_run
+| where run=latest_run
+| sort 0 seq
+| table _time seq message</query>
+          <earliest>-24h</earliest>
+          <latest>now</latest>
+          <refresh>3s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="count">100</option>
+        <option name="drilldown">none</option>
+        <option name="wrap">true</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel id="gnmi_ops_panel">
+      <title>Installer and runtime output</title>
+      <table>
+        <search>
+          <query>index="$ops_index$" (sourcetype="$setup_sourcetype$" OR sourcetype="$runtime_sourcetype$")
+| eval line=coalesce(message, _raw)
+| sort 5000 _time
+| table _time sourcetype line</query>
+          <earliest>-24h</earliest>
+          <latest>now</latest>
+          <refresh>5s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="count">20</option>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel id="gnmi_events_panel">
+      <title>gNMI events arriving</title>
+      <table>
+        <search>
+          <query>index="$events_index$" earliest=-15m
+| head 20
+| table _time host _raw</query>
+          <earliest>-15m</earliest>
+          <latest>now</latest>
+          <refresh>15s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+    <panel id="gnmi_metrics_panel">
+      <title>gNMI metrics arriving</title>
+      <table>
+        <search>
+          <query>| mstats count(_value) AS samples where index="$metrics_index$" metric_name=* by metric_name
+| sort - samples</query>
+          <earliest>-15m</earliest>
+          <latest>now</latest>
+          <refresh>15s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="count">10</option>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+</dashboard>

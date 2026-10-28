@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Splunk runtime / local config (never commit secrets or per-instance config)
+local/
+metadata/local.meta
+
+# OS cruft
+.DS_Store
+._*
+
+# The released package in dist/ is committed, matching the UniFi repos.
+# Ignore ad-hoc archives built outside dist/.
+/*.spl
+/*.tar.gz

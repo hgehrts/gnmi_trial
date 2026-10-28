@@ -1,0 +1,59 @@
+<dashboard version="1.1" script="setup.js" stylesheet="setup.css">
+  <label>Splunk</label>
+  <description>Step 1 of 5. Indexes, HTTP Event Collector, and the token. A lab helper, not a production collector.</description>
+  <row>
+    <panel>
+      <html>
+        <div class="gnmi-intro">
+          <h2>Try gNMI with Splunk</h2>
+          <p>This app is a <strong>trial</strong> for people new to model-driven telemetry. It builds a small lab bundle: gnmic subscribes to a device, and the Splunk OpenTelemetry Collector sends metrics and events to this Splunk instance. It is not sized, hardened, or supported as a production collector.</p>
+          <p>gnmic dials in with gNMI. The same OpenConfig paths work on Cisco IOS XE, IOS XR, NX-OS, Junos, Arista EOS, Nokia SR OS, Nokia SR Linux, and Huawei when those devices have gNMI enabled. A path a device does not implement fails only that subscription.</p>
+          <h2>How the data moves</h2>
+          <svg class="gnmi-arch" viewBox="0 0 940 200" role="img" aria-labelledby="gnmiArchTitle gnmiArchDesc">
+            <title id="gnmiArchTitle">gNMI path into Splunk</title>
+            <desc id="gnmiArchDesc">A network device streams gNMI to gnmic over gRPC. gnmic sends metrics with OTLP and events as a JSON file. The OpenTelemetry Collector forwards both to Splunk over HEC.</desc>
+            <text class="proto" x="204" y="36" text-anchor="middle">gNMI Subscribe</text>
+            <text class="sub" x="204" y="54" text-anchor="middle">gRPC, JSON_IETF</text>
+            <line x1="168" y1="108" x2="242" y2="108"/>
+            <text class="proto" x="470" y="36" text-anchor="middle">OTLP and filelog</text>
+            <text class="sub" x="470" y="54" text-anchor="middle">gRPC metrics, JSON events</text>
+            <line x1="410" y1="108" x2="528" y2="108"/>
+            <text class="proto" x="760" y="36" text-anchor="middle">HEC</text>
+            <text class="sub" x="760" y="54" text-anchor="middle">HTTPS /services/collector</text>
+            <line x1="718" y1="108" x2="798" y2="108"/>
+            <rect x="8" y="72" width="160" height="72" rx="8"/>
+            <text class="name" x="88" y="104" text-anchor="middle">Device</text>
+            <text class="sub" x="88" y="124" text-anchor="middle">OpenConfig</text>
+            <rect x="250" y="72" width="160" height="72" rx="8"/>
+            <text class="name" x="330" y="104" text-anchor="middle">gnmic</text>
+            <text class="sub" x="330" y="124" text-anchor="middle">dial-in subscribe</text>
+            <rect x="530" y="64" width="188" height="88" rx="8"/>
+            <text class="name" x="624" y="100" text-anchor="middle">OpenTelemetry</text>
+            <text class="sub" x="624" y="120" text-anchor="middle">Splunk Collector</text>
+            <rect x="800" y="72" width="128" height="72" rx="8"/>
+            <text class="name" x="864" y="104" text-anchor="middle">Splunk</text>
+            <text class="sub" x="864" y="124" text-anchor="middle">indexes</text>
+          </svg>
+          <ol class="gnmi-arch-notes">
+            <li><strong>gNMI Subscribe over gRPC.</strong> gnmic dials the device. The device streams OpenConfig values. The encoding on the wire is JSON_IETF. This is dial-in. The device does not open a connection toward Splunk.</li>
+            <li><strong>OTLP gRPC for metrics.</strong> gnmic exports counters and gauges to the OpenTelemetry Collector, by default on 127.0.0.1:4317. gnmic's OTLP output carries metrics only.</li>
+            <li><strong>JSON lines for events.</strong> gnmic appends each update as one JSON object in a local file. The collector tails that file with its filelog receiver, so the updates stay events.</li>
+            <li><strong>HEC over HTTPS.</strong> The collector posts both streams to Splunk at /services/collector. Metrics land in the metrics index. Events land in the events index. While install.sh is running it posts its own lines straight to HEC, because the collector is not up yet. Those lines land in the operations index.</li>
+          </ol>
+          <ul>
+            <li><a href="https://gnmic.openconfig.net/" target="_blank" rel="noopener">gnmic documentation</a></li>
+            <li><a href="https://gnmic.openconfig.net/user_guide/outputs/otlp_output/" target="_blank" rel="noopener">gnmic OpenTelemetry output</a></li>
+            <li><a href="https://github.com/openconfig/gnmic" target="_blank" rel="noopener">gnmic source</a></li>
+            <li><a href="https://github.com/openconfig/gnmi" target="_blank" rel="noopener">gNMI protocol</a></li>
+            <li><a href="https://github.com/signalfx/splunk-otel-collector" target="_blank" rel="noopener">Splunk OpenTelemetry Collector</a></li>
+            <li><a href="https://help.splunk.com/en/splunk-observability-cloud/manage-data/splunk-distribution-of-the-opentelemetry-collector" target="_blank" rel="noopener">Splunk OpenTelemetry Collector docs</a></li>
+          </ul>
+          <p>Use this on a standalone lab server only. A single server that both searches and stores data still shows the form. A dedicated search head, a search head cluster member, an indexer cluster peer or manager, and a heavy forwarder do not: the form stays off, and installing the app does not create indexes. Walk the app menu from Splunk to Build, or use Next on each page. On a lab server, leave both checkboxes on. Build creates the three indexes, turns on HTTP Event Collector with TLS, and creates a token that can write to those indexes. From Build, download the zip for another host, or install gnmic and the collector on this server as the Splunk user.</p>
+        </div>
+        <div id="gnmi-page" data-step="splunk"></div>
+        <div id="gnmi-form-host"></div>
+        <div id="gnmi-result"></div>
+      </html>
+    </panel>
+  </row>
+</dashboard>

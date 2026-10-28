@@ -1,0 +1,17 @@
+<dashboard version="1.1" script="setup.js" stylesheet="setup.css">
+  <label>OpenTelemetry</label>
+  <description>Step 2 of 5. Where gnmic delivers metrics, and which collector version to install.</description>
+  <row>
+    <panel>
+      <html>
+        <div class="gnmi-intro">
+          <h2>OpenTelemetry</h2>
+          <p>gnmic sends metrics to the Splunk OpenTelemetry Collector with OTLP over gRPC. The collector listens on this host, then forwards metrics and the tailed event file to Splunk HEC. Set the collector version here. The gNMI version is on the next page.</p>
+        </div>
+        <div id="gnmi-page" data-step="otel"></div>
+        <div id="gnmi-form-host"></div>
+        <div id="gnmi-result"></div>
+      </html>
+    </panel>
+  </row>
+</dashboard>

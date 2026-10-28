@@ -1,0 +1,17 @@
+<dashboard version="1.1" script="setup.js" stylesheet="setup.css">
+  <label>gNMI</label>
+  <description>Step 3 of 5. The account, sample interval, and TLS settings gnmic uses for every device.</description>
+  <row>
+    <panel>
+      <html>
+        <div class="gnmi-intro">
+          <h2>gNMI</h2>
+          <p>These values are the defaults for every device in targets.yaml that does not set its own username or password. gnmic dials the device with gRPC and asks for a sample on this interval. The gnmic version is the release the installer downloads.</p>
+        </div>
+        <div id="gnmi-page" data-step="gnmi"></div>
+        <div id="gnmi-form-host"></div>
+        <div id="gnmi-result"></div>
+      </html>
+    </panel>
+  </row>
+</dashboard>

@@ -1,0 +1,300 @@
+<form version="1.1" script="setup.js" stylesheet="setup.css">
+  <label>gNMI Operation</label>
+  <description>Is gnmic connected, which subscriptions stream, and why a target fails.</description>
+  <init>
+    <set token="ops_index">gnmi_ops</set>
+    <set token="events_index">gnmi</set>
+    <set token="metrics_index">gnmi_metrics</set>
+    <set token="runtime_sourcetype">gnmi:runtime</set>
+  </init>
+  <fieldset submitButton="false" autoRun="true">
+    <input type="time" token="tr" searchWhenChanged="true">
+      <label>Time range</label>
+      <default>
+        <earliest>-60m@m</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <html>
+        <div class="gnmi-intro" id="gnmi-ops-page">
+          <h2>How gnmic works and how it reports failures</h2>
+          <p>For every target, gnmic opens one gRPC channel (TLS unless <code>insecure</code> is true), sends the username and password as gRPC metadata, and starts one gNMI Subscribe RPC per subscription. The device then streams updates. When a channel or an RPC fails, gnmic logs the error and tries again after the retry timer (30s in this lab). It keeps running while the device is down.</p>
+          <h3>Three signals in Splunk</h3>
+          <ul>
+            <li><b>Runtime log</b> (index <code>gnmi_ops</code>, sourcetype <code>gnmi:runtime</code>). gnmic writes JSON lines with <code>level</code>, <code>msg</code>, <code>target</code>, <code>subscription</code>, and <code>err</code>. A connection problem appears as <code>level=ERROR msg="subscription receive error"</code>. The <code>err</code> text holds the gRPC status code, for example <code>code = Unavailable … dial tcp 10.0.0.1:9339: i/o timeout</code>. This app adds <code>grpc_code</code> and a plain <code>failure_cause</code>.</li>
+            <li><b>Target metrics</b> (index <code>gnmi_metrics</code>). <code>gnmic_target_up</code> is 1 when the gNMI connection is established. <code>gnmic_target_connection_state</code> is the gRPC channel state: 0 UNKNOWN, 1 IDLE, 2 CONNECTING, 3 READY, 4 TRANSIENT_FAILURE, 5 SHUTDOWN.</li>
+            <li><b>Subscribe counters</b>. <code>gnmic_subscribe_number_of_failed_subscribe_request_messages_total</code> counts Subscribe RPCs that could not start. <code>gnmic_subscribe_number_of_received_subscribe_response_messages_total</code> counts updates received. That counter only exists once data flows, so a missing counter also means no data.</li>
+          </ul>
+          <p>The collector scrapes those metrics from gnmic's local API at <code>127.0.0.1:7890/metrics</code>. It also scrapes its own counters from <code>127.0.0.1:8888</code>, so failed sends to HEC are visible too.</p>
+          <h3>Reading the error</h3>
+          <table class="gnmi-devices">
+            <tr><th>Error text contains</th><th>Meaning</th><th>Check</th></tr>
+            <tr><td><code>i/o timeout</code>, <code>context deadline exceeded</code></td><td>No answer on the gNMI port</td><td>IP address, routing, ACL or firewall between the collector and the device</td></tr>
+            <tr><td><code>connection refused</code></td><td>The device answers, but nothing listens on that port</td><td>gNMI is not enabled, or the port is wrong (see Devices)</td></tr>
+            <tr><td><code>first record does not look like a TLS handshake</code>, <code>x509</code>, <code>certificate</code></td><td>TLS settings differ between gnmic and the device</td><td>The insecure and skip-verify settings on the gNMI page, and the device certificate</td></tr>
+            <tr><td><code>Unauthenticated</code>, <code>PermissionDenied</code></td><td>Login rejected or the user lacks gNMI rights</td><td>Username, password, AAA authorization on the device</td></tr>
+            <tr><td><code>Unimplemented</code>, <code>NotFound</code>, <code>InvalidArgument</code></td><td>The device refuses this path, mode, or encoding</td><td>Only that subscription fails. Remove the path or use one the device supports</td></tr>
+          </table>
+          <h3>Debug from the collector host</h3>
+          <ol>
+            <li>Port reachable: <code>timeout 3 bash -c 'echo &gt;/dev/tcp/DEVICE/PORT' &amp;&amp; echo open</code></li>
+            <li>gNMI, TLS, and login in one call: <code>gnmic -a DEVICE:PORT -u USER --skip-verify capabilities</code>. Use <code>--insecure</code> for a device without TLS. gnmic asks for the password when <code>-p</code> is left out.</li>
+            <li>One read: <code>gnmic -a DEVICE:PORT -u USER --skip-verify get --path /system/state</code></li>
+            <li>Add <code>--debug</code> to print each RPC and the gRPC channel state changes.</li>
+            <li>Running state of this gnmic: <code>curl -s http://127.0.0.1:7890/api/v1/targets</code>. Passwords appear as <code>****</code>.</li>
+            <li>Raw counters: <code>curl -s http://127.0.0.1:7890/metrics | grep gnmic_</code></li>
+          </ol>
+          <p>Docs: <a href="https://gnmic.openconfig.net/global_flags/" target="_blank" rel="noopener">global flags (log, debug, timeout, retry)</a>, <a href="https://gnmic.openconfig.net/cmd/capabilities/" target="_blank" rel="noopener">capabilities</a>, <a href="https://gnmic.openconfig.net/cmd/get/" target="_blank" rel="noopener">get</a>, <a href="https://gnmic.openconfig.net/user_guide/targets/targets/" target="_blank" rel="noopener">targets</a>, <a href="https://gnmic.openconfig.net/user_guide/subscriptions/" target="_blank" rel="noopener">subscriptions</a>, <a href="https://gnmic.openconfig.net/user_guide/api/api_intro/" target="_blank" rel="noopener">API server and metrics</a>.</p>
+        </div>
+      </html>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Targets connected</title>
+      <single>
+        <search>
+          <query>| mstats latest(_value) AS up WHERE index="$metrics_index$" metric_name="gnmic_target_up" BY name
+| stats sum(up) AS connected count AS total
+| eval connected=coalesce(connected, 0), value=connected." of ".coalesce(total, 0)
+| fields value</query>
+          <earliest>-5m</earliest>
+          <latest>now</latest>
+          <refresh>15s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="colorMode">none</option>
+        <option name="drilldown">none</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Targets in failure</title>
+      <single>
+        <search>
+          <query>| mstats latest(_value) AS state WHERE index="$metrics_index$" metric_name="gnmic_target_connection_state" BY name
+| where state!=3
+| stats count</query>
+          <earliest>-5m</earliest>
+          <latest>now</latest>
+          <refresh>15s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0xdc4e41"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="useColors">1</option>
+        <option name="drilldown">none</option>
+      </single>
+    </panel>
+    <panel>
+      <title>gnmic errors</title>
+      <single>
+        <search>
+          <query>index="$ops_index$" sourcetype="$runtime_sourcetype$" level=ERROR | stats count</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+          <refresh>15s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0xf8be34"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="useColors">1</option>
+        <option name="drilldown">none</option>
+      </single>
+    </panel>
+    <panel>
+      <title>gNMI updates received</title>
+      <single>
+        <search>
+          <query>| mstats max(_value) AS hi min(_value) AS lo WHERE index="$metrics_index$" metric_name="gnmic_subscribe_number_of_received_subscribe_response_messages*" BY extracted_source subscription
+| eval received=hi-lo
+| stats sum(received) AS received
+| eval received=coalesce(received, 0)</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+          <refresh>15s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="colorMode">none</option>
+        <option name="drilldown">none</option>
+      </single>
+    </panel>
+    <panel>
+      <title>Collector send failures to HEC</title>
+      <single>
+        <search>
+          <query>| mstats max(_value) AS hi min(_value) AS lo WHERE index="$metrics_index$" metric_name="otelcol_exporter_send_failed*" BY metric_name exporter
+| eval failed=hi-lo
+| stats sum(failed) AS failed
+| eval failed=coalesce(failed, 0)</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+          <refresh>15s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="colorMode">block</option>
+        <option name="rangeColors">["0x53a051","0xdc4e41"]</option>
+        <option name="rangeValues">[0]</option>
+        <option name="useColors">1</option>
+        <option name="drilldown">none</option>
+      </single>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Target status</title>
+      <table>
+        <search>
+          <query>| mstats latest(_value) AS value WHERE index="$metrics_index$" (metric_name="gnmic_target_up" OR metric_name="gnmic_target_connection_state") BY name metric_name
+| eval metric=if(metric_name="gnmic_target_up", "up", "state")
+| xyseries name metric value
+| join type=left name
+    [ search index="$ops_index$" sourcetype="$runtime_sourcetype$" level=ERROR
+    | stats latest(_time) AS last_error latest(failure_cause) AS last_cause latest(grpc_code) AS grpc_code BY target
+    | rename target AS name ]
+| eval status=if(up=1, "connected", "not connected"),
+       channel=case(state=0, "UNKNOWN", state=1, "IDLE", state=2, "CONNECTING", state=3, "READY", state=4, "TRANSIENT_FAILURE (gnmic retries)", state=5, "SHUTDOWN"),
+       last_error=strftime(last_error, "%Y-%m-%d %H:%M:%S")
+| table name status channel last_error grpc_code last_cause</query>
+          <earliest>-5m</earliest>
+          <latest>now</latest>
+          <refresh>15s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="count">20</option>
+        <option name="drilldown">none</option>
+        <format type="color" field="status">
+          <colorPalette type="map">{"connected":#53A051,"not connected":#DC4E41}</colorPalette>
+        </format>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>gRPC channel state per target (3 = READY, 4 = TRANSIENT_FAILURE)</title>
+      <chart>
+        <search>
+          <query>| mstats max(_value) AS state WHERE index="$metrics_index$" metric_name="gnmic_target_connection_state" span=1m BY name
+| xyseries _time name state</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="charting.chart">line</option>
+        <option name="charting.axisY.minimumNumber">0</option>
+        <option name="charting.axisY.maximumNumber">5</option>
+        <option name="charting.drilldown">none</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Failures by cause</title>
+      <chart>
+        <search>
+          <query>index="$ops_index$" sourcetype="$runtime_sourcetype$" level=ERROR
+| timechart span=1m count BY failure_cause</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="charting.chart">column</option>
+        <option name="charting.chart.stackMode">stacked</option>
+        <option name="charting.legend.placement">bottom</option>
+        <option name="charting.drilldown">none</option>
+      </chart>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Subscriptions per target</title>
+      <table>
+        <search>
+          <query>| mstats latest(_value) AS value WHERE index="$metrics_index$" metric_name="gnmic_subscribe_number_of_*" BY metric_name extracted_source subscription
+| eval counter=case(like(metric_name, "%failed_subscribe_request%"), "failed_starts", like(metric_name, "%received_subscribe_response%"), "updates_received", true(), metric_name),
+       key=extracted_source." / ".subscription
+| xyseries key counter value
+| eval updates_received=coalesce(updates_received, 0), failed_starts=coalesce(failed_starts, 0),
+       health=case(updates_received>0, "streaming", failed_starts>0, "not started: see errors", true(), "waiting")
+| rename key AS "target / subscription"
+| table "target / subscription" health updates_received failed_starts</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="count">30</option>
+        <option name="drilldown">none</option>
+        <format type="color" field="health">
+          <colorPalette type="map">{"streaming":#53A051,"not started: see errors":#DC4E41,"waiting":#F8BE34}</colorPalette>
+        </format>
+      </table>
+    </panel>
+    <panel>
+      <title>Collector exports to Splunk HEC</title>
+      <table>
+        <search>
+          <query>| mstats max(_value) AS hi min(_value) AS lo WHERE index="$metrics_index$" metric_name="otelcol_exporter_*" BY metric_name exporter
+| eval count=hi-lo,
+       kind=case(like(metric_name, "%send_failed%"), "failed", like(metric_name, "%sent%"), "sent", true(), null())
+| where isnotnull(kind)
+| eval signal=case(like(metric_name, "%metric_points%"), "metric points", like(metric_name, "%log_records%"), "log records", true(), "other"),
+       row=exporter." (".signal.")"
+| xyseries row kind count
+| eval sent=coalesce(sent, 0), failed=coalesce(failed, 0)
+| rename row AS "exporter (signal)"
+| table "exporter (signal)" sent failed</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+          <refresh>30s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="count">20</option>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>gnmic errors and warnings</title>
+      <table>
+        <search>
+          <query>index="$ops_index$" sourcetype="$runtime_sourcetype$" (level=ERROR OR level=WARN)
+| table _time level target subscription grpc_code failure_cause err
+| head 200</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+          <refresh>15s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="count">15</option>
+        <option name="wrap">true</option>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>gnmic log</title>
+      <table>
+        <search>
+          <query>index="$ops_index$" sourcetype="$runtime_sourcetype$"
+| eval message=coalesce(msg, _raw)
+| table _time level message target subscription
+| head 300</query>
+          <earliest>$tr.earliest$</earliest>
+          <latest>$tr.latest$</latest>
+          <refresh>15s</refresh>
+          <refreshType>delay</refreshType>
+        </search>
+        <option name="count">20</option>
+        <option name="wrap">true</option>
+        <option name="drilldown">none</option>
+      </table>
+    </panel>
+  </row>
+</form>

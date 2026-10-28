@@ -1,0 +1,77 @@
+.gnmi-intro { max-width: 58rem; line-height: 1.45; }
+.dashboard-row:has(#gnmi_install_live):not(.gnmi-show),
+.dashboard-row:has(#gnmi_ops_panel):not(.gnmi-show),
+.dashboard-row:has(#gnmi_events_panel):not(.gnmi-show) { display: none !important; }
+.gnmi-intro,
+.gnmi-form,
+.gnmi-form legend,
+.gnmi-result,
+.gnmi-devices { color: inherit; }
+.gnmi-intro h2,
+.gnmi-form legend,
+.gnmi-result h3 { font-size: 1.7rem; font-weight: 700; line-height: 1.2; color: inherit; }
+.gnmi-intro h3 { font-size: 1.35rem; font-weight: 700; line-height: 1.25; }
+.gnmi-intro ul,
+.gnmi-arch-notes { margin-left: 1.2rem; }
+.gnmi-arch-notes li { margin: 0.35rem 0; }
+.gnmi-form { max-width: 58rem; }
+.gnmi-form fieldset { border: 1px solid rgba(127,127,127,0.45); margin: 1rem 0; padding: 0.8rem 1rem 0.6rem; }
+.gnmi-form legend { padding: 0 0.4rem; }
+.gnmi-field { margin: 0 0 0.9rem; }
+.gnmi-field label { display: block; font-weight: 600; }
+.gnmi-field input[type="text"],
+.gnmi-field input[type="password"],
+.gnmi-field select,
+.gnmi-field textarea {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 0.2rem;
+    background: #fff;
+    color: #1c2126;
+    border: 1px solid #8c959e;
+}
+.gnmi-field textarea { min-height: 16rem; font-family: ui-monospace, monospace; }
+.gnmi-help { margin: 0.25rem 0 0; opacity: 0.85; }
+.gnmi-actions { margin: 1rem 0; }
+.gnmi-pager { display: flex; gap: 0.8rem; flex-wrap: wrap; margin: 0.4rem 0 0.2rem; }
+.gnmi-pager a,
+.gnmi-actions button,
+.gnmi-result button {
+    font-size: 1rem;
+    padding: 0.45rem 0.85rem;
+    border: 1px solid currentColor;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    text-decoration: none;
+}
+.gnmi-result { max-width: 58rem; margin-top: 1rem; }
+.gnmi-result pre { white-space: pre-wrap; max-height: 16rem; overflow: auto; }
+.gnmi-error { color: #b00020; }
+.gnmi-blocked { max-width: 58rem; padding: 0.8rem 1rem; border: 1px solid rgba(127,127,127,0.5); }
+.gnmi-devices { border-collapse: collapse; width: 100%; max-width: 58rem; margin: 0.4rem 0 1rem; }
+.gnmi-devices th,
+.gnmi-devices td { text-align: left; vertical-align: top; padding: 0.35rem 0.8rem 0.35rem 0; border-bottom: 1px solid rgba(127,127,127,0.35); }
+.gnmi-arch { width: 100%; max-width: 58rem; height: auto; display: block; margin: 0.8rem 0 0.4rem; }
+.gnmi-arch rect { fill: rgba(127,127,127,0.14); stroke: currentColor; stroke-width: 1.5; }
+.gnmi-arch text { fill: currentColor; font-family: inherit; }
+.gnmi-arch .name { font-size: 16px; font-weight: 700; }
+.gnmi-arch .sub { font-size: 13px; }
+.gnmi-arch .proto { font-size: 13px; font-weight: 700; }
+.gnmi-arch line { stroke: currentColor; stroke-width: 1.6; }
+.gnmi-dark .gnmi-field input[type="text"],
+.gnmi-dark .gnmi-field input[type="password"],
+.gnmi-dark .gnmi-field select,
+.gnmi-dark .gnmi-field textarea,
+[class*="layout-dark"] .gnmi-field input[type="text"],
+[class*="layout-dark"] .gnmi-field input[type="password"],
+[class*="layout-dark"] .gnmi-field select,
+[class*="layout-dark"] .gnmi-field textarea {
+    background: #0e1317;
+    color: #f5f7f8;
+    border-color: #3d4b56;
+}
+.gnmi-dark .gnmi-field option,
+[class*="layout-dark"] .gnmi-field option { background: #171d21; color: #f5f7f8; }
+.gnmi-dark .gnmi-error,
+[class*="layout-dark"] .gnmi-error { color: #ff8b8b; }

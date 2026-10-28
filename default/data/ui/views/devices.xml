@@ -1,0 +1,32 @@
+<dashboard version="1.1" script="setup.js" stylesheet="setup.css">
+  <label>Devices</label>
+  <description>Step 4 of 5. Turn on gNMI, then uncomment one block per device.</description>
+  <row>
+    <panel>
+      <html>
+        <div class="gnmi-intro">
+          <h2>Devices</h2>
+          <p>Use a lab account that can read OpenConfig. Uncomment the matching block in targets.yaml. The usual port and the one setting that starts gNMI dial-in:</p>
+          <table class="gnmi-devices">
+            <thead>
+              <tr><th>Network OS</th><th>Port</th><th>Enable gNMI</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Cisco IOS XE</td><td>9339</td><td>IOS XE 17.3 or later: <code>gnmi-yang</code>. Earlier 16.12 trains: <code>gnxi</code>.</td></tr>
+              <tr><td>Cisco IOS XR</td><td>57400</td><td>Under <code>grpc</code>, set <code>port 57400</code>. gNMI uses that listener.</td></tr>
+              <tr><td>Cisco NX-OS</td><td>50051</td><td><code>feature grpc</code>, then <code>grpc port 50051</code>.</td></tr>
+              <tr><td>Junos</td><td>32767</td><td><code>set system services extension-service request-response grpc ssl port 32767</code></td></tr>
+              <tr><td>Arista EOS</td><td>6030</td><td><code>management api gnmi</code> and a grpc transport on port 6030.</td></tr>
+              <tr><td>Nokia SR OS</td><td>57400</td><td>In MD-CLI, enable <code>system grpc</code> and <code>system grpc gnmi</code>.</td></tr>
+              <tr><td>Nokia SR Linux</td><td>57400</td><td>Set <code>system grpc-server</code> admin-state enable, port 57400, service <code>gnmi</code>.</td></tr>
+              <tr><td>Huawei VRP</td><td>57400</td><td>Enable the gRPC server on port 57400. This is gNMI dial-in, separate from Huawei dial-out telemetry.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="gnmi-page" data-step="devices"></div>
+        <div id="gnmi-form-host"></div>
+        <div id="gnmi-result"></div>
+      </html>
+    </panel>
+  </row>
+</dashboard>

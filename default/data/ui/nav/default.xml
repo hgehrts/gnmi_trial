@@ -1,0 +1,9 @@
+<nav search_view="search" color="#1F4B66">
+  <view name="splunk" default="true" />
+  <view name="otel" />
+  <view name="gnmi" />
+  <view name="devices" />
+  <view name="build" />
+  <view name="gnmi_operation" />
+  <view name="search" />
+</nav>
