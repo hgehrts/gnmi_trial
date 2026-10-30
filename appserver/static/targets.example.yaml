@@ -4,7 +4,8 @@
 #
 # Username, password, and TLS defaults come from the settings at the top of
 # install.sh. Uncomment one block per device. Remove a subscription name if
-# that network OS rejects the path.
+# that network OS rejects the path. Nokia SR Linux uses the srl-* names.
+# Those are native YANG paths. The other names are OpenConfig.
 #
 # Default gNMI ports:
 #   Cisco IOS XE     9339
@@ -49,7 +50,7 @@ targets:
 
   # srlinux-1:
   #   address: 10.0.0.8:57400
-  #   subscriptions: [interface-counters, interface-status, cpu, memory, lldp, bgp]
+  #   subscriptions: [srl-interface-counters, srl-interface-status, srl-cpu, srl-memory, srl-lldp, srl-bgp]
   #   outputs: [otlp, events]
 
   # huawei-1:

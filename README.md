@@ -1,16 +1,16 @@
 # gNMI Trial Setup
 
-Version **1.4.0**. Lab helper for learning gNMI with Splunk Enterprise. It is not a production collector.
+Version **1.5.0**. Lab helper for learning gNMI with Splunk Enterprise. It is not a production collector.
 
 gnmic dials network devices with gNMI Subscribe over gRPC. Metrics go to the Splunk OpenTelemetry Collector with OTLP. Events are JSON lines that the collector tails. The collector posts both to Splunk HEC over HTTPS.
 
-The same OpenConfig paths are the starting point for Cisco IOS XE, IOS XR, NX-OS, Junos, Arista EOS, Nokia SR OS, Nokia SR Linux, and Huawei gNMI.
+OpenConfig paths are the starting point for Cisco IOS XE, IOS XR, NX-OS, Junos, Arista EOS, Nokia SR OS, and Huawei gNMI. Nokia SR Linux uses its native YANG model. Its target block subscribes to the `srl-` names: `/interface`, `/platform/control/cpu`, `/platform/control/memory`, `/system/lldp`, and `/network-instance/protocols/bgp`. SR Linux rejects the OpenConfig paths, including `/system/memory/state`.
 
 ## Install the app
 
-Download `gnmi_trial-1.4.0.spl` from the [latest release](https://github.com/hgehrts/gnmi_trial/releases/latest). In Splunk Web, open **Apps → Manage Apps → Install app from file** and upload that file.
+Download `gnmi_trial-1.5.0.spl` from the [latest release](https://github.com/hgehrts/gnmi_trial/releases/latest). In Splunk Web, open **Apps → Manage Apps → Install app from file** and upload that file.
 
-The same file is in [`dist/gnmi_trial-1.4.0.spl`](dist/gnmi_trial-1.4.0.spl). `dist/gnmi_trial-1.4.0.spl.sha256` is its SHA-256 checksum. A `.spl` file is a tar.gz whose top directory is `gnmi_trial`.
+The same file is in [`dist/gnmi_trial-1.5.0.spl`](dist/gnmi_trial-1.5.0.spl). `dist/gnmi_trial-1.5.0.spl.sha256` is its SHA-256 checksum. A `.spl` file is a tar.gz whose top directory is `gnmi_trial`.
 
 To build it yourself:
 
@@ -39,6 +39,8 @@ The HEC token field starts as `00000000-0000-0000-0000-000000000000`. With **Ena
 **Download configuration** writes `gnmi-trial-bundle.zip`. Unpack it on a host that can reach the devices and run `sudo ./install.sh`. That path uses root. Linux uses systemd. macOS uses launchd.
 
 **Install on this server** runs `install.sh --container` as the Splunk user. It does not need root or systemd. Programs and configs go under `$SPLUNK_HOME/var/gnmi-collector`, which keeps the token and device password out of the app directory. In the lab container this is the `splunk` user. Restarting Splunk stops those processes until you install again. After you press the button, the Build page shows a live table of the latest installer run that refreshes every 3 seconds. The installer starts with Splunk's library variables removed, so system tools such as curl do not load Splunk's libcurl and OpenSSL.
+
+After that install, the Build page shows editors for `gnmic.yaml`, `otel-agent.yaml`, and `targets.yaml`. **Save** writes those three files on this server. **Restart gnmic** and **Restart OpenTelemetry** stop that process and start it again so it reads the saved file. gnmic does not apply config changes until it is restarted. The device password and HEC token stay in those collector files, not in the app directory.
 
 **gNMI Operation** shows whether gnmic is connected and why a target fails. gnmic writes JSON logs (`log: true`, `log-format: json`) to the runtime log, which lands in the operations index as `gnmi:runtime`. Splunk adds `grpc_code` and a plain `failure_cause`. gnmic's local API on `127.0.0.1:7890` serves `gnmic_target_up`, `gnmic_target_connection_state`, and the subscribe counters. The collector scrapes those, plus its own export counters on `127.0.0.1:8888`, into the metrics index. The page also lists the debugging commands (port check, `gnmic capabilities`, `--debug`, `/api/v1/targets`).
 

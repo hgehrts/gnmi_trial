@@ -7,9 +7,11 @@ import os
 import re
 import shlex
 import shutil
+import signal
 import stat
 import subprocess
 import sys
+import time
 import zipfile
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -583,6 +585,186 @@ def _start_container_install(bundle):
     }
 
 
+COLLECTOR_FILES = {
+    "gnmic.yaml": ("gnmic.yaml", 0o600, ("subscriptions:", "targets:")),
+    "otel-agent.yaml": ("otel-agent.yaml", 0o644, ("receivers:", "exporters:")),
+    "targets.yaml": ("targets.yaml", 0o644, ("targets:",)),
+}
+COLLECTOR_SERVICES = {
+    "gnmic": ("gnmic.pid", "run-gnmic.sh", "gnmic.log"),
+    "otel": ("otel.pid", "run-otel.sh", "otel.log"),
+}
+MAX_COLLECTOR_FILE = 256 * 1024
+
+
+def _collector_file(name):
+    filename, mode, markers = COLLECTOR_FILES[name]
+    root = os.path.realpath(_container_root())
+    path = os.path.realpath(os.path.join(root, "etc", filename))
+    if path != os.path.join(root, "etc", filename):
+        raise ValueError("Refusing to use a path outside the collector directory.")
+    return path, mode, markers
+
+
+def _collector_env():
+    return {key: value for key, value in os.environ.items() if key not in SPLUNK_LIB_ENV}
+
+
+def _read_collector():
+    files = {}
+    installed = False
+    for name in COLLECTOR_FILES:
+        path, _mode, _markers = _collector_file(name)
+        if os.path.isfile(path):
+            installed = True
+            with open(path, "r", encoding="utf-8") as handle:
+                files[name] = handle.read()
+        else:
+            files[name] = ""
+    status = _container_status()
+    status["installed"] = installed
+    status["files"] = files
+    return status
+
+
+def _save_collector(files):
+    if not isinstance(files, dict):
+        raise ValueError("Save gnmic.yaml, otel-agent.yaml, and targets.yaml together.")
+    unknown = [key for key in files if key not in COLLECTOR_FILES]
+    if unknown:
+        raise ValueError("Only gnmic.yaml, otel-agent.yaml, and targets.yaml can be saved.")
+    missing = [name for name in COLLECTOR_FILES if name not in files]
+    if missing:
+        raise ValueError("Save all three files together.")
+    cleaned = {}
+    for name in COLLECTOR_FILES:
+        text = files[name]
+        _path, _mode, markers = _collector_file(name)
+        if not isinstance(text, str):
+            raise ValueError(name + " must be text.")
+        if "\0" in text:
+            raise ValueError(name + " is not a text file.")
+        if len(text.encode("utf-8")) > MAX_COLLECTOR_FILE:
+            raise ValueError(name + " is larger than 256 KB.")
+        if not any(marker in text for marker in markers):
+            raise ValueError(name + " is missing " + " or ".join(markers) + ".")
+        if not text.endswith("\n"):
+            text += "\n"
+        cleaned[name] = text
+    etc = os.path.join(_container_root(), "etc")
+    os.makedirs(etc, mode=0o700, exist_ok=True)
+    for name, text in cleaned.items():
+        path, mode, _markers = _collector_file(name)
+        temporary = path + ".tmp"
+        with open(temporary, "w", encoding="utf-8") as handle:
+            handle.write(text)
+        os.chmod(temporary, mode)
+        os.replace(temporary, path)
+    return {
+        "saved": list(COLLECTOR_FILES),
+        "detail": "Saved gnmic.yaml, otel-agent.yaml, and targets.yaml. Restart gnmic or the OpenTelemetry Collector so the running process reads the saved file.",
+    }
+
+
+def _stop_pidfile(pidfile):
+    try:
+        with open(pidfile, "r", encoding="utf-8") as handle:
+            pid = int(handle.read().strip())
+    except (OSError, ValueError):
+        return
+    if pid <= 1:
+        return
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except OSError:
+        pass
+    for _ in range(30):
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            break
+        time.sleep(0.1)
+    else:
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except OSError:
+            pass
+        time.sleep(0.2)
+    try:
+        os.remove(pidfile)
+    except OSError:
+        pass
+
+
+def _log_tail(path):
+    try:
+        with open(path, "r", encoding="utf-8", errors="replace") as handle:
+            lines = handle.readlines()[-8:]
+    except OSError:
+        return ""
+    text = "".join(lines).strip()
+    return text[-400:]
+
+
+def _restart_service(name):
+    pid_name, script_name, log_name = COLLECTOR_SERVICES[name]
+    root = _container_root()
+    script = os.path.join(root, "bin", script_name)
+    if not os.path.isfile(script) or not os.access(script, os.X_OK):
+        raise ValueError(name + " is not installed on this server yet.")
+    if _pid_alive(os.path.join(root, "run", "install.pid")):
+        raise ValueError("An install is still running. Wait until it finishes, then restart.")
+    run_dir = os.path.join(root, "run")
+    os.makedirs(run_dir, mode=0o700, exist_ok=True)
+    _stop_pidfile(os.path.join(run_dir, pid_name))
+    try:
+        proc = subprocess.Popen(
+            [script],
+            cwd=root,
+            env=_collector_env(),
+            start_new_session=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except OSError:
+        raise ValueError(name + " could not be started.")
+    pidfile = os.path.join(run_dir, pid_name)
+    with open(pidfile, "w", encoding="utf-8") as handle:
+        handle.write(str(proc.pid) + "\n")
+    os.chmod(pidfile, stat.S_IRUSR | stat.S_IWUSR)
+    time.sleep(1.5)
+    if not _pid_alive(pidfile):
+        detail = _log_tail(os.path.join(root, "logs", log_name))
+        message = name + " exited after the restart."
+        if detail:
+            message += " " + detail
+        raise ValueError(message)
+
+
+def _collector_action(action, body):
+    if action == "read_collector":
+        return _read_collector()
+    if action == "save_collector":
+        saved = _save_collector(body.get("files"))
+        saved.update(_container_status())
+        return saved
+    if action == "restart_collector":
+        service = body.get("service")
+        if service not in ("gnmic", "otel", "both"):
+            raise ValueError("Choose gnmic or the OpenTelemetry Collector.")
+        names = ("gnmic", "otel") if service == "both" else (service,)
+        for name in names:
+            _restart_service(name)
+        status = _container_status()
+        label = "gnmic and the OpenTelemetry Collector" if service == "both" else (
+            "gnmic" if service == "gnmic" else "the OpenTelemetry Collector"
+        )
+        status["detail"] = "Restarted " + label + "."
+        status["installed"] = True
+        return status
+    raise ValueError("Unknown collector action.")
+
+
 def _preview(bundle):
     return {
         "gnmic.yaml": bundle["files"]["gnmic.yaml"],
@@ -619,6 +801,14 @@ class Handler(PersistentServerConnectionApplication):
             body = raw_payload if isinstance(raw_payload, dict) else json.loads(raw_payload)
         except Exception:
             return _response(400, {"error": "The form body was not JSON."})
+
+        action = str(body.get("action") or "").strip()
+        if action:
+            try:
+                result = _collector_action(action, body)
+            except ValueError as exc:
+                return _response(400, {"error": str(exc)})
+            return _response(200, result)
 
         create_indexes = _as_bool(body.get("create_indexes"))
         create_hec = _as_bool(body.get("create_hec"))

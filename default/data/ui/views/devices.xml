@@ -18,7 +18,7 @@
               <tr><td>Junos</td><td>32767</td><td><code>set system services extension-service request-response grpc ssl port 32767</code></td></tr>
               <tr><td>Arista EOS</td><td>6030</td><td><code>management api gnmi</code> and a grpc transport on port 6030.</td></tr>
               <tr><td>Nokia SR OS</td><td>57400</td><td>In MD-CLI, enable <code>system grpc</code> and <code>system grpc gnmi</code>.</td></tr>
-              <tr><td>Nokia SR Linux</td><td>57400</td><td>Set <code>system grpc-server</code> admin-state enable, port 57400, service <code>gnmi</code>.</td></tr>
+              <tr><td>Nokia SR Linux</td><td>57400</td><td>Set <code>system grpc-server</code> admin-state enable, port 57400, service <code>gnmi</code>. Subscribe with the <code>srl-</code> names. SR Linux rejects the OpenConfig paths.</td></tr>
               <tr><td>Huawei VRP</td><td>57400</td><td>Enable the gRPC server on port 57400. This is gNMI dial-in, separate from Huawei dial-out telemetry.</td></tr>
             </tbody>
           </table>

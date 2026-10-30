@@ -25,6 +25,11 @@ api-server:
 subscriptions:
   # Each name is its own gNMI Subscribe RPC. An unsupported path fails only
   # that subscription; the others keep streaming.
+  #
+  # interface-counters through bgp are OpenConfig. Cisco, Junos, Arista,
+  # Nokia SR OS, and Huawei gNMI accept those paths.
+  # srl-* are Nokia SR Linux native YANG. SR Linux rejects the OpenConfig
+  # names, including /system/memory/state and /interfaces/interface.
   interface-counters:
     paths:
       - /interfaces/interface/state/counters
@@ -66,6 +71,49 @@ subscriptions:
   bgp:
     paths:
       - /network-instances/network-instance/protocols/protocol/bgp/neighbors/neighbor/state/session-state
+    mode: stream
+    stream-mode: sample
+    encoding: json_ietf
+    sample-interval: __GNMI_SAMPLE_INTERVAL__
+  srl-interface-counters:
+    paths:
+      - /interface/statistics
+    mode: stream
+    stream-mode: sample
+    encoding: json_ietf
+    sample-interval: __GNMI_SAMPLE_INTERVAL__
+  srl-interface-status:
+    paths:
+      - /interface/oper-state
+      - /interface/admin-state
+    mode: stream
+    stream-mode: sample
+    encoding: json_ietf
+    sample-interval: __GNMI_SAMPLE_INTERVAL__
+  srl-cpu:
+    paths:
+      - /platform/control/cpu
+    mode: stream
+    stream-mode: sample
+    encoding: json_ietf
+    sample-interval: __GNMI_SAMPLE_INTERVAL__
+  srl-memory:
+    paths:
+      - /platform/control/memory
+    mode: stream
+    stream-mode: sample
+    encoding: json_ietf
+    sample-interval: __GNMI_SAMPLE_INTERVAL__
+  srl-lldp:
+    paths:
+      - /system/lldp
+    mode: stream
+    stream-mode: sample
+    encoding: json_ietf
+    sample-interval: __GNMI_SAMPLE_INTERVAL__
+  srl-bgp:
+    paths:
+      - /network-instance/protocols/bgp
     mode: stream
     stream-mode: sample
     encoding: json_ietf

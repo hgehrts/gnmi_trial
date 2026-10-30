@@ -31,6 +31,10 @@
     border: 1px solid #8c959e;
 }
 .gnmi-field textarea { min-height: 16rem; font-family: ui-monospace, monospace; }
+.gnmi-editor { margin-top: 1.4rem; }
+.gnmi-editor[hidden] { display: none; }
+.gnmi-editor h3 { font-size: 1.35rem; font-weight: 700; line-height: 1.25; }
+.gnmi-editor textarea { min-height: 14rem; }
 .gnmi-help { margin: 0.25rem 0 0; opacity: 0.85; }
 .gnmi-actions { margin: 1rem 0; }
 .gnmi-pager { display: flex; gap: 0.8rem; flex-wrap: wrap; margin: 0.4rem 0 0.2rem; }

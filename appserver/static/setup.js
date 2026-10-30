@@ -167,7 +167,7 @@ require([
             parts.push(
                 '<div class="gnmi-field"><label for="targets_yaml">targets.yaml</label>' +
                 '<textarea id="targets_yaml">' + escapeAttr(state.targets_yaml) + '</textarea>' +
-                '<p class="gnmi-help">Uncomment one block per device. The port in each comment is the usual gNMI port for that network OS. subscriptions lists the OpenConfig paths. outputs otlp and events send metrics and JSON events.</p></div>'
+                '<p class="gnmi-help">Uncomment one block per device. The port in each comment is the usual gNMI port for that network OS. Nokia SR Linux uses the srl- subscription names. The other devices use the OpenConfig names. outputs otlp and events send metrics and JSON events.</p></div>'
             );
         }
         if (step === "build") {
@@ -177,7 +177,8 @@ require([
                 '<button type="button" id="gnmi-install">Install on this server</button>' +
                 '</div>' +
                 '<p class="gnmi-help">Download writes gnmi-trial-bundle.zip for a host that can reach the devices. Install on this server runs that same script here as the Splunk user, without root or systemd. Use the HEC URL https://127.0.0.1:8088/services/collector so the collector reaches this Splunk. In the lab container, the user is splunk.</p>' +
-                '<p id="gnmi-container-status" class="gnmi-help"></p>'
+                '<p id="gnmi-container-status" class="gnmi-help"></p>' +
+                editorHtml()
             );
         }
         parts.push('</fieldset>', pagerHtml(step), '</form>');
@@ -192,6 +193,145 @@ require([
         $("#gnmi-install").on("click", function() {
             installRequested = true;
             $("#gnmi-form").trigger("submit");
+        });
+        $("#gnmi-save-files").on("click", saveCollectorFiles);
+        $("#gnmi-restart-gnmic").on("click", function() {
+            restartCollector("gnmic");
+        });
+        $("#gnmi-restart-otel").on("click", function() {
+            restartCollector("otel");
+        });
+        if (step === "build") {
+            loadEditor();
+        }
+    }
+
+    function editorHtml() {
+        function field(name) {
+            return '<div class="gnmi-field"><label for="gnmi-file-' + name + '">' + name + '</label>' +
+                '<textarea id="gnmi-file-' + name + '" data-file="' + name + '" spellcheck="false"></textarea></div>';
+        }
+        return '<div id="gnmi-editor" class="gnmi-editor" hidden>' +
+            '<h3>Collector files on this server</h3>' +
+            '<p class="gnmi-help">These are the files written by Install on this server. gnmic reads gnmic.yaml, including the device list at the bottom of that file. targets.yaml is the device list kept beside it. The OpenTelemetry Collector reads otel-agent.yaml. Save writes all three. Restart stops that process and starts it again so it reads the saved file. gnmic does not reload its configuration in place.</p>' +
+            field("gnmic.yaml") +
+            field("otel-agent.yaml") +
+            field("targets.yaml") +
+            '<div class="gnmi-actions">' +
+            '<button type="button" id="gnmi-save-files">Save</button>' +
+            '<button type="button" id="gnmi-restart-gnmic">Restart gnmic</button>' +
+            '<button type="button" id="gnmi-restart-otel">Restart OpenTelemetry</button>' +
+            '</div>' +
+            '<p id="gnmi-editor-status" class="gnmi-help"></p>' +
+            '</div>';
+    }
+
+    function parseServiceData(response) {
+        var data = response && (response.data || response);
+        if (typeof data === "string") {
+            data = JSON.parse(data);
+        }
+        return data;
+    }
+
+    function postCollector(body, done) {
+        var service = mvc.createService();
+        service.request(
+            "gnmi_setup",
+            "POST",
+            null,
+            null,
+            JSON.stringify(body),
+            {"Content-Type": "application/json"},
+            function(err, response) {
+                if (err) {
+                    done(err);
+                    return;
+                }
+                var data;
+                try {
+                    data = parseServiceData(response);
+                } catch (ignore) {
+                    done({data: "The collector response was not JSON."});
+                    return;
+                }
+                if (data && data.error) {
+                    done({data: data});
+                    return;
+                }
+                done(null, data);
+            }
+        );
+    }
+
+    function setEditorStatus(text, isError) {
+        var node = $("#gnmi-editor-status");
+        node.toggleClass("gnmi-error", !!isError);
+        node.text(text || "");
+    }
+
+    function showEditor(data) {
+        var host = $("#gnmi-editor");
+        if (!host.length || !data || !data.installed) {
+            return;
+        }
+        host.removeAttr("hidden");
+        ["gnmic.yaml", "otel-agent.yaml", "targets.yaml"].forEach(function(name) {
+            var box = host.find("textarea[data-file='" + name + "']");
+            if (!box.length || document.activeElement === box[0]) {
+                return;
+            }
+            if (data.files && Object.prototype.hasOwnProperty.call(data.files, name)) {
+                box.val(data.files[name]);
+            }
+        });
+    }
+
+    function loadEditor() {
+        if ($("#gnmi-page").attr("data-step") !== "build" || !$("#gnmi-editor").length) {
+            return;
+        }
+        postCollector({action: "read_collector"}, function(err, data) {
+            if (err) {
+                return;
+            }
+            showEditor(data);
+        });
+    }
+
+    function collectorFilesFromDom() {
+        var files = {};
+        $("#gnmi-editor textarea").each(function() {
+            files[$(this).attr("data-file")] = $(this).val();
+        });
+        return files;
+    }
+
+    function saveCollectorFiles() {
+        setEditorStatus("Saving the three files…");
+        $("#gnmi-save-files, #gnmi-restart-gnmic, #gnmi-restart-otel").prop("disabled", true);
+        postCollector({action: "save_collector", files: collectorFilesFromDom()}, function(err, data) {
+            $("#gnmi-save-files, #gnmi-restart-gnmic, #gnmi-restart-otel").prop("disabled", false);
+            if (err) {
+                setEditorStatus(errorText(err), true);
+                return;
+            }
+            setEditorStatus((data && data.detail) || "Saved.");
+        });
+    }
+
+    function restartCollector(service) {
+        var label = service === "otel" ? "OpenTelemetry Collector" : "gnmic";
+        setEditorStatus("Restarting " + label + "…");
+        $("#gnmi-save-files, #gnmi-restart-gnmic, #gnmi-restart-otel").prop("disabled", true);
+        postCollector({action: "restart_collector", service: service}, function(err, data) {
+            $("#gnmi-save-files, #gnmi-restart-gnmic, #gnmi-restart-otel").prop("disabled", false);
+            if (err) {
+                setEditorStatus(errorText(err), true);
+                return;
+            }
+            setEditorStatus((data && data.detail) || ("Restarted " + label + "."));
+            noteContainer(data);
         });
     }
 
@@ -392,6 +532,9 @@ require([
         }
         if (box && (box.state === "running" || box.state === "started")) {
             setTimeout(pollContainer, 3000);
+        }
+        if (box && box.state === "ok") {
+            loadEditor();
         }
     }
 
