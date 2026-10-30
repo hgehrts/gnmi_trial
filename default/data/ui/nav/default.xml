@@ -5,5 +5,6 @@
   <view name="devices" />
   <view name="build" />
   <view name="gnmi_operation" />
+  <view name="gnmi_data" />
   <view name="search" />
 </nav>

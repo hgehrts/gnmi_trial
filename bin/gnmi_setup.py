@@ -120,6 +120,29 @@ def _create_indexes(session_key, indexes):
     return [_create_index(session_key, name, datatype) for name, datatype in specs]
 
 
+def _update_macros(session_key, indexes, checked):
+    definitions = (
+        ("gnmi_events_index", 'index="' + indexes["events"] + '"'),
+        ("gnmi_metrics_index", 'index="' + indexes["metrics"] + '"'),
+        ("gnmi_ops_index", 'index="' + indexes["ops"] + '"'),
+        ("gnmi_runtime_sourcetype", 'sourcetype="' + checked["SPLUNK_HEC_RUNTIME_SOURCETYPE"] + '"'),
+        ("gnmi_setup_sourcetype", 'sourcetype="' + checked["SPLUNK_HEC_SETUP_SOURCETYPE"] + '"'),
+    )
+    results = []
+    for name, definition in definitions:
+        try:
+            _splunk_json(
+                session_key,
+                "/servicesNS/nobody/gnmi_trial/configs/conf-macros/" + name,
+                "POST",
+                {"definition": definition},
+            )
+            results.append({"name": name, "status": "updated"})
+        except Exception as exc:
+            results.append({"name": name, "status": "error", "detail": _safe_detail(exc)})
+    return results
+
+
 def _splunk_json(session_key, path, method, postargs=None):
     import splunk.rest
 
@@ -873,6 +896,9 @@ class Handler(PersistentServerConnectionApplication):
         }
         if hec_result:
             payload["hec"] = hec_result
+        macro_key = session_key or _session_key(request)
+        if macro_key:
+            payload["macros"] = _update_macros(macro_key, indexes, checked)
         if _as_bool(body.get("install_container")):
             payload["container"] = _start_container_install(bundle)
         return _response(200, payload)

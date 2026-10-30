@@ -130,6 +130,16 @@ require([
             input + '<p class="gnmi-help">' + field.help + '</p></div>';
     }
 
+    function stepperHtml(step) {
+        var order = ["splunk", "otel", "gnmi", "devices", "build"];
+        var current = order.indexOf(step);
+        return '<ol class="gnmi-stepper">' + order.map(function(name, index) {
+            var state = index < current ? "done" : (index === current ? "current" : "todo");
+            return '<li class="gnmi-step-' + state + '"><a class="gnmi-step-link" data-view="' + name + '" href="' + viewUrl(name) + '">' +
+                '<span class="gnmi-step-num">' + (index + 1) + '</span>' + STEPS[name].title + '</a></li>';
+        }).join("") + '</ol>';
+    }
+
     function pagerHtml(step) {
         var meta = STEPS[step];
         var html = '<div class="gnmi-pager">';
@@ -690,6 +700,9 @@ require([
         if (!STEPS[step]) {
             return;
         }
+        if (!$(".gnmi-stepper").length) {
+            $(".gnmi-intro").first().before(stepperHtml(step));
+        }
         var service = mvc.createService();
         service.request(
             "gnmi_setup",
@@ -730,9 +743,9 @@ require([
 
     $(function() {
         watchTheme();
-        if (/\/gnmi_operation\/?$/.test(window.location.pathname)) {
-            setSearchTokens(mergedState());
-        }
+        $(document).on("click", ".gnmi-stepper .gnmi-step-link", function() {
+            saveFromDom();
+        });
         followUserTheme(checkLab);
     });
 });

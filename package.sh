@@ -24,6 +24,7 @@ rm -f "$out"
 COPYFILE_DISABLE=1 tar -czf "$out" \
   --exclude 'gnmi_trial/dist' \
   --exclude 'gnmi_trial/.git' \
+  --exclude 'gnmi_trial/tools' \
   --exclude '.DS_Store' \
   --exclude '._*' \
   --exclude 'gnmi_trial/bin/__pycache__' \

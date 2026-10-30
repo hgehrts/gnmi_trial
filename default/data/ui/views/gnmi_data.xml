@@ -1,0 +1,913 @@
+<dashboard version="2" theme="dark">
+  <label>gNMI Data</label>
+  <description>Events and metrics that the devices stream over gNMI.</description>
+  <definition><![CDATA[
+{
+  "title": "gNMI Data",
+  "description": "Events and metrics that the devices stream over gNMI.",
+  "inputs": {
+    "input_tr": {
+      "type": "input.timerange",
+      "title": "Time range",
+      "options": {
+        "token": "tr",
+        "defaultValue": "-60m,now"
+      }
+    },
+    "input_target": {
+      "type": "input.dropdown",
+      "title": "Target",
+      "dataSources": {
+        "primary": "ds_targets"
+      },
+      "options": {
+        "token": "target",
+        "defaultValue": "*",
+        "items": ">frame(label, value) | prepend(formattedStatics) | objects()"
+      },
+      "context": {
+        "formattedConfig": {
+          "number": {
+            "prefix": ""
+          }
+        },
+        "formattedStatics": ">statics | formatByType(formattedConfig)",
+        "statics": [
+          [
+            "All"
+          ],
+          [
+            "*"
+          ]
+        ],
+        "label": ">primary | seriesByName(\"label\") | renameSeries(\"label\") | formatByType(formattedConfig)",
+        "value": ">primary | seriesByName(\"value\") | renameSeries(\"value\") | formatByType(formattedConfig)"
+      }
+    },
+    "input_subscription": {
+      "type": "input.dropdown",
+      "title": "Subscription",
+      "dataSources": {
+        "primary": "ds_subscriptions"
+      },
+      "options": {
+        "token": "subscription",
+        "defaultValue": "*",
+        "items": ">frame(label, value) | prepend(formattedStatics) | objects()"
+      },
+      "context": {
+        "formattedConfig": {
+          "number": {
+            "prefix": ""
+          }
+        },
+        "formattedStatics": ">statics | formatByType(formattedConfig)",
+        "statics": [
+          [
+            "All"
+          ],
+          [
+            "*"
+          ]
+        ],
+        "label": ">primary | seriesByName(\"label\") | renameSeries(\"label\") | formatByType(formattedConfig)",
+        "value": ">primary | seriesByName(\"value\") | renameSeries(\"value\") | formatByType(formattedConfig)"
+      }
+    },
+    "input_interface": {
+      "type": "input.dropdown",
+      "title": "Interface",
+      "dataSources": {
+        "primary": "ds_interfaces"
+      },
+      "options": {
+        "token": "interface",
+        "defaultValue": "*",
+        "items": ">frame(label, value) | prepend(formattedStatics) | objects()"
+      },
+      "context": {
+        "formattedConfig": {
+          "number": {
+            "prefix": ""
+          }
+        },
+        "formattedStatics": ">statics | formatByType(formattedConfig)",
+        "statics": [
+          [
+            "All"
+          ],
+          [
+            "*"
+          ]
+        ],
+        "label": ">primary | seriesByName(\"label\") | renameSeries(\"label\") | formatByType(formattedConfig)",
+        "value": ">primary | seriesByName(\"value\") | renameSeries(\"value\") | formatByType(formattedConfig)"
+      }
+    }
+  },
+  "defaults": {
+    "dataSources": {
+      "ds.search": {
+        "options": {
+          "queryParameters": {
+            "earliest": "$tr.earliest$",
+            "latest": "$tr.latest$"
+          }
+        }
+      }
+    },
+    "tokens": {
+      "default": {
+        "metric": {
+          "value": "*cpu_total_instant"
+        }
+      }
+    }
+  },
+  "visualizations": {
+    "viz_intro": {
+      "type": "splunk.markdown",
+      "options": {
+        "markdown": "Values that the devices stream over gNMI. **Events** (index macro `gnmi_events_index`) hold every update as JSON. **Metrics** (macro `gnmi_metrics_index`) hold the same numbers as time series. Click a row or a chart series to filter the rest of the page. Use **Open in Search** on any panel for the full query.",
+        "fontSize": "default"
+      }
+    },
+    "viz_kpi_targets": {
+      "type": "splunk.singlevalue",
+      "title": "Targets sending data",
+      "dataSources": {
+        "primary": "ds_kpi_targets"
+      },
+      "options": {
+        "majorFontSize": 44,
+        "sparklineDisplay": "off",
+        "trendDisplay": "off"
+      }
+    },
+    "viz_kpi_updates": {
+      "type": "splunk.singlevalue",
+      "title": "gNMI updates (events)",
+      "dataSources": {
+        "primary": "ds_kpi_updates"
+      },
+      "options": {
+        "majorFontSize": 44,
+        "sparklineDisplay": "off",
+        "trendDisplay": "off"
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToSearch",
+          "options": {
+            "type": "custom",
+            "query": "`gnmi_events_index` tags.source=\"$target$\" name=\"$subscription$\"",
+            "earliest": "$tr.earliest$",
+            "latest": "$tr.latest$",
+            "newTab": true
+          }
+        }
+      ]
+    },
+    "viz_kpi_samples": {
+      "type": "splunk.singlevalue",
+      "title": "Metric samples",
+      "dataSources": {
+        "primary": "ds_kpi_samples"
+      },
+      "options": {
+        "majorFontSize": 44,
+        "sparklineDisplay": "off",
+        "trendDisplay": "off"
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToSearch",
+          "options": {
+            "type": "custom",
+            "query": "| mstats count(_value) AS samples WHERE `gnmi_metrics_index` metric_name=\"*\" \"subscription-name\"=\"$subscription$\" extracted_source=\"$target$\" BY metric_name",
+            "earliest": "$tr.earliest$",
+            "latest": "$tr.latest$",
+            "newTab": true
+          }
+        }
+      ]
+    },
+    "viz_kpi_interfaces": {
+      "type": "splunk.singlevalue",
+      "title": "Interfaces oper up",
+      "dataSources": {
+        "primary": "ds_kpi_interfaces"
+      },
+      "options": {
+        "majorFontSize": 44,
+        "sparklineDisplay": "off",
+        "trendDisplay": "off"
+      }
+    },
+    "viz_kpi_cpu": {
+      "type": "splunk.singlevalue",
+      "title": "CPU (latest, busiest CPU)",
+      "dataSources": {
+        "primary": "ds_kpi_cpu"
+      },
+      "options": {
+        "majorFontSize": 44,
+        "sparklineDisplay": "off",
+        "trendDisplay": "off",
+        "unit": "%",
+        "unitPosition": "after",
+        "backgroundColor": "> majorValue | rangeValue(backgroundColorEditorConfig)"
+      },
+      "context": {
+        "backgroundColorEditorConfig": [
+          {
+            "to": 70,
+            "value": "#118832"
+          },
+          {
+            "from": 70,
+            "to": 90,
+            "value": "#cba700"
+          },
+          {
+            "from": 90,
+            "value": "#d41f1f"
+          }
+        ]
+      }
+    },
+    "viz_kpi_memory": {
+      "type": "splunk.singlevalue",
+      "title": "Memory used (latest)",
+      "dataSources": {
+        "primary": "ds_kpi_memory"
+      },
+      "options": {
+        "majorFontSize": 44,
+        "sparklineDisplay": "off",
+        "trendDisplay": "off",
+        "unit": "%",
+        "unitPosition": "after",
+        "backgroundColor": "> majorValue | rangeValue(backgroundColorEditorConfig)"
+      },
+      "context": {
+        "backgroundColorEditorConfig": [
+          {
+            "to": 75,
+            "value": "#118832"
+          },
+          {
+            "from": 75,
+            "to": 90,
+            "value": "#cba700"
+          },
+          {
+            "from": 90,
+            "value": "#d41f1f"
+          }
+        ]
+      }
+    },
+    "viz_updates_time": {
+      "type": "splunk.column",
+      "title": "Updates per minute by subscription (click a series to filter)",
+      "dataSources": {
+        "primary": "ds_updates_time"
+      },
+      "options": {
+        "stackMode": "stacked",
+        "legendDisplay": "bottom",
+        "yAxisTitleText": "updates",
+        "xAxisTitleVisibility": "hide"
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.setToken",
+          "options": {
+            "tokens": [
+              {
+                "token": "subscription",
+                "key": "name"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "viz_streams": {
+      "type": "splunk.table",
+      "title": "Streams by target and subscription (click to filter)",
+      "dataSources": {
+        "primary": "ds_streams"
+      },
+      "options": {
+        "count": 10,
+        "headerVisibility": "fixed",
+        "showInternalFields": false,
+        "columnFormat": {
+          "state": {
+            "rowBackgroundColors": "> table | seriesByName(\"state\") | matchValue(stateColors)"
+          }
+        }
+      },
+      "context": {
+        "stateColors": [
+          {
+            "match": "streaming",
+            "value": "#118832"
+          },
+          {
+            "match": "stale",
+            "value": "#cba700"
+          },
+          {
+            "value": "#5c6773"
+          }
+        ]
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.setToken",
+          "options": {
+            "tokens": [
+              {
+                "token": "target",
+                "key": "row.target.value"
+              },
+              {
+                "token": "subscription",
+                "key": "row.subscription.value"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "viz_interfaces": {
+      "type": "splunk.table",
+      "title": "Interfaces: state, average kbit/s, errors and discards in the time range (click to focus)",
+      "dataSources": {
+        "primary": "ds_interfaces_table"
+      },
+      "options": {
+        "count": 12,
+        "headerVisibility": "fixed",
+        "showInternalFields": false,
+        "columnFormat": {
+          "target": {
+            "width": 110
+          },
+          "interface": {
+            "width": 130
+          },
+          "oper": {
+            "rowBackgroundColors": "> table | seriesByName(\"oper\") | matchValue(operColors)"
+          },
+          "admin": {
+            "rowBackgroundColors": "> table | seriesByName(\"admin\") | matchValue(adminColors)"
+          }
+        }
+      },
+      "context": {
+        "operColors": [
+          {
+            "match": "up",
+            "value": "#118832"
+          },
+          {
+            "match": "UP",
+            "value": "#118832"
+          },
+          {
+            "match": "enable",
+            "value": "#118832"
+          },
+          {
+            "match": "ENABLED",
+            "value": "#118832"
+          },
+          {
+            "match": "down",
+            "value": "#d41f1f"
+          },
+          {
+            "match": "DOWN",
+            "value": "#d41f1f"
+          },
+          {
+            "match": "down (disabled)",
+            "value": "#5c6773"
+          },
+          {
+            "match": "disable",
+            "value": "#5c6773"
+          },
+          {
+            "match": "DISABLED",
+            "value": "#5c6773"
+          },
+          {
+            "value": "#5c6773"
+          }
+        ],
+        "adminColors": [
+          {
+            "match": "up",
+            "value": "#118832"
+          },
+          {
+            "match": "UP",
+            "value": "#118832"
+          },
+          {
+            "match": "enable",
+            "value": "#118832"
+          },
+          {
+            "match": "ENABLED",
+            "value": "#118832"
+          },
+          {
+            "match": "down",
+            "value": "#d41f1f"
+          },
+          {
+            "match": "DOWN",
+            "value": "#d41f1f"
+          },
+          {
+            "match": "down (disabled)",
+            "value": "#5c6773"
+          },
+          {
+            "match": "disable",
+            "value": "#5c6773"
+          },
+          {
+            "match": "DISABLED",
+            "value": "#5c6773"
+          },
+          {
+            "value": "#5c6773"
+          }
+        ]
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.setToken",
+          "options": {
+            "tokens": [
+              {
+                "token": "interface",
+                "key": "row.interface.value"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "viz_traffic": {
+      "type": "splunk.line",
+      "title": "Interface traffic in kbit/s (interface: $interface$)",
+      "dataSources": {
+        "primary": "ds_traffic"
+      },
+      "options": {
+        "legendDisplay": "bottom",
+        "yAxisTitleText": "kbit/s",
+        "xAxisTitleVisibility": "hide",
+        "nullValueDisplay": "connect"
+      }
+    },
+    "viz_cpu": {
+      "type": "splunk.line",
+      "title": "CPU utilization %",
+      "dataSources": {
+        "primary": "ds_cpu"
+      },
+      "options": {
+        "legendDisplay": "bottom",
+        "yAxisMin": 0,
+        "yAxisMax": 100,
+        "xAxisTitleVisibility": "hide",
+        "yAxisTitleText": "%",
+        "nullValueDisplay": "connect"
+      }
+    },
+    "viz_memory": {
+      "type": "splunk.area",
+      "title": "Memory utilization %",
+      "dataSources": {
+        "primary": "ds_memory"
+      },
+      "options": {
+        "legendDisplay": "bottom",
+        "yAxisMin": 0,
+        "yAxisMax": 100,
+        "xAxisTitleVisibility": "hide",
+        "yAxisTitleText": "%",
+        "nullValueDisplay": "connect"
+      }
+    },
+    "viz_metric_catalog": {
+      "type": "splunk.table",
+      "title": "Device metrics (click a metric to plot it)",
+      "dataSources": {
+        "primary": "ds_metric_catalog"
+      },
+      "options": {
+        "count": 12,
+        "headerVisibility": "fixed",
+        "showInternalFields": false,
+        "columnFormat": {
+          "metric": {
+            "width": 380
+          },
+          "subscription": {
+            "width": 150
+          },
+          "target": {
+            "width": 110
+          }
+        }
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.setToken",
+          "options": {
+            "tokens": [
+              {
+                "token": "metric",
+                "key": "row._metric_name.value"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "viz_metric_trend": {
+      "type": "splunk.line",
+      "title": "Selected metric: gauges as value, counters as rate per second",
+      "dataSources": {
+        "primary": "ds_metric_trend"
+      },
+      "options": {
+        "legendDisplay": "bottom",
+        "xAxisTitleVisibility": "hide",
+        "yAxisTitleVisibility": "hide",
+        "nullValueDisplay": "connect"
+      },
+      "description": "$metric$"
+    },
+    "viz_events": {
+      "type": "splunk.table",
+      "title": "Latest device updates (events, click to open the raw events)",
+      "dataSources": {
+        "primary": "ds_events"
+      },
+      "options": {
+        "count": 15,
+        "headerVisibility": "fixed",
+        "showInternalFields": false
+      },
+      "eventHandlers": [
+        {
+          "type": "drilldown.linkToSearch",
+          "options": {
+            "type": "custom",
+            "query": "`gnmi_events_index` tags.source=\"$row.target.value$\" name=\"$row.subscription.value$\"",
+            "earliest": "$tr.earliest$",
+            "latest": "$tr.latest$",
+            "newTab": true
+          }
+        }
+      ]
+    }
+  },
+  "dataSources": {
+    "ds_targets": {
+      "type": "ds.search",
+      "options": {
+        "query": "| tstats count WHERE `gnmi_events_index` BY tags.source\n| rename tags.source AS value\n| eval label=value\n| table label value",
+        "refresh": "5m",
+        "refreshType": "delay"
+      }
+    },
+    "ds_subscriptions": {
+      "type": "ds.search",
+      "options": {
+        "query": "| tstats count WHERE `gnmi_events_index` tags.source=\"$target$\" BY name\n| eval label=name, value=name\n| table label value",
+        "refresh": "5m",
+        "refreshType": "delay"
+      }
+    },
+    "ds_interfaces": {
+      "type": "ds.search",
+      "options": {
+        "query": "| tstats count WHERE `gnmi_events_index` tags.source=\"$target$\" tags.interface_name=* BY tags.interface_name\n| rename tags.interface_name AS value\n| eval label=value\n| table label value",
+        "refresh": "5m",
+        "refreshType": "delay"
+      }
+    },
+    "ds_kpi_targets": {
+      "type": "ds.search",
+      "options": {
+        "query": "| tstats dc(tags.source) AS targets WHERE `gnmi_events_index` tags.source=\"$target$\" name=\"$subscription$\"\n| eval targets=coalesce(targets, 0)",
+        "refresh": "30s",
+        "refreshType": "delay"
+      }
+    },
+    "ds_kpi_updates": {
+      "type": "ds.search",
+      "options": {
+        "query": "| tstats count AS updates WHERE `gnmi_events_index` tags.source=\"$target$\" name=\"$subscription$\"\n| eval updates=coalesce(updates, 0)",
+        "refresh": "30s",
+        "refreshType": "delay"
+      }
+    },
+    "ds_kpi_samples": {
+      "type": "ds.search",
+      "options": {
+        "query": "| mstats count(_value) AS samples WHERE `gnmi_metrics_index` metric_name=\"*\" \"subscription-name\"=\"$subscription$\" extracted_source=\"$target$\"\n| append [| makeresults | eval samples=0]\n| stats sum(samples) AS samples",
+        "refresh": "30s",
+        "refreshType": "delay"
+      }
+    },
+    "ds_kpi_interfaces": {
+      "type": "ds.search",
+      "options": {
+        "query": "| mstats latest_time(_value) AS t WHERE `gnmi_metrics_index` metric_name=\"*oper_stat*\" extracted_source=\"$target$\" interface_name=\"$interface$\" BY extracted_source interface_name value\n| sort 0 - t\n| dedup extracted_source interface_name\n| stats count(eval(lower(value)=\"up\")) AS up count AS total\n| eval interfaces=coalesce(up, 0).\" of \".coalesce(total, 0)\n| fields interfaces",
+        "refresh": "30s",
+        "refreshType": "delay"
+      }
+    },
+    "ds_kpi_cpu": {
+      "type": "ds.search",
+      "options": {
+        "query": "| mstats latest(_value) AS cpu WHERE `gnmi_metrics_index` (metric_name=\"*cpu_total_instant\" OR metric_name=\"*cpu_utilization_state_instant\" OR metric_name=\"*cpu_utilization_instant\") extracted_source=\"$target$\" BY extracted_source\n| stats max(cpu) AS cpu\n| eval cpu=round(cpu, 0)",
+        "refresh": "30s",
+        "refreshType": "delay"
+      }
+    },
+    "ds_kpi_memory": {
+      "type": "ds.search",
+      "options": {
+        "query": "| mstats latest(_value) AS memory WHERE `gnmi_metrics_index` metric_name=\"*memory_utilization\" extracted_source=\"$target$\" BY extracted_source\n| stats max(memory) AS memory\n| eval memory=round(memory, 0)",
+        "refresh": "30s",
+        "refreshType": "delay"
+      }
+    },
+    "ds_updates_time": {
+      "type": "ds.search",
+      "options": {
+        "query": "| tstats count WHERE `gnmi_events_index` tags.source=\"$target$\" name=\"$subscription$\" BY _time name span=1m\n| timechart span=1m sum(count) AS updates BY name",
+        "refresh": "30s",
+        "refreshType": "delay"
+      }
+    },
+    "ds_streams": {
+      "type": "ds.search",
+      "options": {
+        "query": "| tstats count AS updates latest(_time) AS last_update WHERE `gnmi_events_index` tags.source=\"$target$\" name=\"$subscription$\" BY tags.source name\n| rename tags.source AS target, name AS subscription\n| eval age_s=now()-last_update, state=if(age_s<=180, \"streaming\", \"stale\"), last_update=strftime(last_update, \"%Y-%m-%d %H:%M:%S\")\n| table target subscription state updates last_update\n| sort target subscription",
+        "refresh": "30s",
+        "refreshType": "delay"
+      }
+    },
+    "ds_interfaces_table": {
+      "type": "ds.search",
+      "options": {
+        "query": "| mstats latest_time(_value) AS t WHERE `gnmi_metrics_index` extracted_source=\"$target$\" interface_name=\"$interface$\" (metric_name=\"*admin_stat*\" OR metric_name=\"*oper_stat*\") BY extracted_source interface_name metric_name value\n| eval field=if(like(metric_name, \"%admin_stat%\"), \"admin\", \"oper\")\n| sort 0 - t\n| dedup extracted_source interface_name field\n| eval {field}=value\n| stats values(admin) AS admin values(oper) AS oper BY extracted_source interface_name\n| join type=left extracted_source interface_name\n    [| mstats earliest(_value) AS first latest(_value) AS last earliest_time(_value) AS t0 latest_time(_value) AS t1 WHERE `gnmi_metrics_index` extracted_source=\"$target$\" interface_name=\"$interface$\" (metric_name=\"*_in_octets\" OR metric_name=\"*_out_octets\" OR metric_name=\"*_in_error*\" OR metric_name=\"*_out_error*\" OR metric_name=\"*_in_discard*\" OR metric_name=\"*_out_discard*\") BY extracted_source interface_name metric_name\n    | eval k=case(like(metric_name, \"%in_octets\"), \"in_kbps\", like(metric_name, \"%out_octets\"), \"out_kbps\", like(metric_name, \"%in_error%\"), \"in_errors\", like(metric_name, \"%out_error%\"), \"out_errors\", like(metric_name, \"%in_discard%\"), \"in_discards\", like(metric_name, \"%out_discard%\"), \"out_discards\")\n    | eval d=last-first, v=case(d<0, null(), like(k, \"%kbps\") AND t1>t0, round(d*8/(t1-t0)/1000, 2), like(k, \"%kbps\"), null(), true(), round(d, 0))\n    | eval {k}=v\n    | stats values(in_kbps) AS in_kbps values(out_kbps) AS out_kbps values(in_errors) AS in_errors values(out_errors) AS out_errors values(in_discards) AS in_discards values(out_discards) AS out_discards BY extracted_source interface_name]\n| rename extracted_source AS target, interface_name AS interface\n| eval oper=if(match(lower(admin), \"^disable\") AND lower(oper)=\"down\", \"down (disabled)\", oper),\n       sort_key=if(lower(oper)=\"up\", 0, 1)\n| sort 0 sort_key target interface\n| eval errors=if(isnull(in_errors) AND isnull(out_errors), null(), coalesce(in_errors, 0)+coalesce(out_errors, 0)),\n       discards=if(isnull(in_discards) AND isnull(out_discards), null(), coalesce(in_discards, 0)+coalesce(out_discards, 0))\n| table target interface admin oper in_kbps out_kbps errors discards",
+        "refresh": "30s",
+        "refreshType": "delay"
+      }
+    },
+    "ds_traffic": {
+      "type": "ds.search",
+      "options": {
+        "query": "| mstats max(_value) AS v WHERE `gnmi_metrics_index` extracted_source=\"$target$\" interface_name=\"$interface$\" (metric_name=\"*_in_octets\" OR metric_name=\"*_out_octets\") span=1m BY extracted_source interface_name metric_name\n| sort 0 _time\n| streamstats current=f global=f window=1 last(v) AS prev last(_time) AS pt BY extracted_source interface_name metric_name\n| where isnotnull(prev) AND v>=prev AND _time>pt\n| eval series=extracted_source.\" \".interface_name.if(like(metric_name, \"%in_octets\"), \" in\", \" out\"),\n       kbps=round((v-prev)*8/(_time-pt)/1000, 2)\n| timechart span=1m limit=20 useother=f max(kbps) BY series",
+        "refresh": "30s",
+        "refreshType": "delay"
+      }
+    },
+    "ds_cpu": {
+      "type": "ds.search",
+      "options": {
+        "query": "| mstats avg(_value) AS cpu WHERE `gnmi_metrics_index` (metric_name=\"*cpu_total_instant\" OR metric_name=\"*cpu_utilization_state_instant\" OR metric_name=\"*cpu_utilization_instant\") extracted_source=\"$target$\" span=1m BY extracted_source\n| timechart span=1m limit=20 useother=f avg(cpu) BY extracted_source",
+        "refresh": "30s",
+        "refreshType": "delay"
+      }
+    },
+    "ds_memory": {
+      "type": "ds.search",
+      "options": {
+        "query": "| mstats avg(_value) AS memory WHERE `gnmi_metrics_index` metric_name=\"*memory_utilization\" extracted_source=\"$target$\" span=1m BY extracted_source\n| timechart span=1m limit=20 useother=f avg(memory) BY extracted_source",
+        "refresh": "30s",
+        "refreshType": "delay"
+      }
+    },
+    "ds_metric_catalog": {
+      "type": "ds.search",
+      "options": {
+        "query": "| mstats count(_value) AS samples latest(_value) AS latest min(_value) AS min max(_value) AS max WHERE `gnmi_metrics_index` metric_name=\"*\" \"subscription-name\"=\"$subscription$\" extracted_source=\"$target$\" BY metric_name \"subscription-name\" extracted_source\n| eval metric=replace(metric_name, \"(srl_nokia|openconfig|Cisco_IOS_XE|cisco|junos|arista|huawei)_[A-Za-z0-9_]*?:\", \"\"), latest=round(latest, 2), min=round(min, 2), max=round(max, 2)\n| rename \"subscription-name\" AS subscription, extracted_source AS target\n| rename metric_name AS _metric_name\n| table metric subscription target samples latest min max _metric_name\n| sort subscription metric",
+        "refresh": "30s",
+        "refreshType": "delay"
+      }
+    },
+    "ds_metric_trend": {
+      "type": "ds.search",
+      "options": {
+        "query": "| mstats max(_value) AS v WHERE `gnmi_metrics_index` metric_name=\"$metric$\" extracted_source=\"$target$\" span=1m BY _timeseries\n| eval kind=if(match(_timeseries, \"\\\"metric_type\\\":\\\"Gauge\\\"\"), \"gauge\", \"counter\")\n| eval label=_timeseries\n| rex field=label mode=sed \"s/\\\"(host|metric_name|metric_type|service\\.name|source|sourcetype|telemetry\\.source|subscription-name)\\\":\\\"[^\\\"]*\\\",?//g\"\n| rex field=label mode=sed \"s/[{}\\\"]//g\"\n| rex field=label mode=sed \"s/,$//\"\n| rex field=label mode=sed \"s/:/=/g\"\n| rex field=label mode=sed \"s/,/ /g\"\n| sort 0 _time\n| streamstats current=f global=f window=1 last(v) AS prev last(_time) AS pt BY label\n| eval value=if(kind=\"counter\", if(v>=prev AND _time>pt, round((v-prev)/(_time-pt), 3), null()), v)\n| timechart span=1m limit=20 useother=f max(value) BY label",
+        "refresh": "30s",
+        "refreshType": "delay"
+      }
+    },
+    "ds_events": {
+      "type": "ds.search",
+      "options": {
+        "query": "`gnmi_events_index` tags.source=\"$target$\" name=\"$subscription$\"\n| where \"$interface$\"=\"*\" OR 'tags.interface_name'==\"$interface$\"\n| head 200\n| eval target='tags.source', interface='tags.interface_name'\n| foreach values.* [ eval update=mvappend(update, replace(replace(\"<<MATCHSTR>>\", \"[A-Za-z0-9_]+-[A-Za-z0-9-]+:\", \"\"), \"^.*/([^/]+/[^/]+)$\", \"\\1\").\"=\".'<<FIELD>>') ]\n| table _time target name interface update\n| rename name AS subscription",
+        "refresh": "30s",
+        "refreshType": "delay"
+      }
+    }
+  },
+  "layout": {
+    "type": "grid",
+    "options": {
+      "width": 1440,
+      "height": 2170
+    },
+    "structure": [
+      {
+        "item": "viz_intro",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 0,
+          "w": 1440,
+          "h": 70
+        }
+      },
+      {
+        "item": "viz_kpi_targets",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 70,
+          "w": 240,
+          "h": 130
+        }
+      },
+      {
+        "item": "viz_kpi_updates",
+        "type": "block",
+        "position": {
+          "x": 240,
+          "y": 70,
+          "w": 240,
+          "h": 130
+        }
+      },
+      {
+        "item": "viz_kpi_samples",
+        "type": "block",
+        "position": {
+          "x": 480,
+          "y": 70,
+          "w": 240,
+          "h": 130
+        }
+      },
+      {
+        "item": "viz_kpi_interfaces",
+        "type": "block",
+        "position": {
+          "x": 720,
+          "y": 70,
+          "w": 240,
+          "h": 130
+        }
+      },
+      {
+        "item": "viz_kpi_cpu",
+        "type": "block",
+        "position": {
+          "x": 960,
+          "y": 70,
+          "w": 240,
+          "h": 130
+        }
+      },
+      {
+        "item": "viz_kpi_memory",
+        "type": "block",
+        "position": {
+          "x": 1200,
+          "y": 70,
+          "w": 240,
+          "h": 130
+        }
+      },
+      {
+        "item": "viz_updates_time",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 200,
+          "w": 840,
+          "h": 330
+        }
+      },
+      {
+        "item": "viz_streams",
+        "type": "block",
+        "position": {
+          "x": 840,
+          "y": 200,
+          "w": 600,
+          "h": 330
+        }
+      },
+      {
+        "item": "viz_interfaces",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 530,
+          "w": 840,
+          "h": 420
+        }
+      },
+      {
+        "item": "viz_traffic",
+        "type": "block",
+        "position": {
+          "x": 840,
+          "y": 530,
+          "w": 600,
+          "h": 420
+        }
+      },
+      {
+        "item": "viz_cpu",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 950,
+          "w": 720,
+          "h": 300
+        }
+      },
+      {
+        "item": "viz_memory",
+        "type": "block",
+        "position": {
+          "x": 720,
+          "y": 950,
+          "w": 720,
+          "h": 300
+        }
+      },
+      {
+        "item": "viz_metric_catalog",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 1250,
+          "w": 840,
+          "h": 440
+        }
+      },
+      {
+        "item": "viz_metric_trend",
+        "type": "block",
+        "position": {
+          "x": 840,
+          "y": 1250,
+          "w": 600,
+          "h": 440
+        }
+      },
+      {
+        "item": "viz_events",
+        "type": "block",
+        "position": {
+          "x": 0,
+          "y": 1690,
+          "w": 1440,
+          "h": 480
+        }
+      }
+    ],
+    "globalInputs": [
+      "input_tr",
+      "input_target",
+      "input_subscription",
+      "input_interface"
+    ]
+  }
+}
+]]></definition>
+  <meta type="hiddenElements"><![CDATA[
+{"hideEdit": false, "hideOpenInSearch": false, "hideExport": false}
+]]></meta>
+</dashboard>

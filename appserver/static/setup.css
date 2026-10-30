@@ -77,5 +77,53 @@
 }
 .gnmi-dark .gnmi-field option,
 [class*="layout-dark"] .gnmi-field option { background: #171d21; color: #f5f7f8; }
+.gnmi-stepper { display: flex; flex-wrap: wrap; gap: 0.4rem; list-style: none; margin: 0.2rem 0 1.2rem; padding: 0; max-width: 58rem; }
+.gnmi-stepper li { flex: 1 1 8rem; }
+.gnmi-stepper a {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.7rem;
+    border-radius: 6px;
+    border: 1px solid rgba(127,127,127,0.4);
+    color: inherit;
+    text-decoration: none;
+    font-weight: 600;
+}
+.gnmi-stepper a:hover { border-color: #006eaa; }
+.gnmi-step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    font-size: 0.85rem;
+    border: 1px solid currentColor;
+}
+.gnmi-step-current a { background: #006eaa; border-color: #006eaa; color: #fff; }
+.gnmi-step-current .gnmi-step-num { background: #fff; color: #006eaa; border-color: #fff; }
+.gnmi-step-done .gnmi-step-num { background: #118832; border-color: #118832; color: #fff; }
+.gnmi-form fieldset { border-radius: 8px; padding: 1rem 1.2rem 0.8rem; }
+.gnmi-field input[type="text"],
+.gnmi-field input[type="password"],
+.gnmi-field select,
+.gnmi-field textarea { border-radius: 4px; padding: 0.35rem 0.5rem; }
+.gnmi-pager a,
+.gnmi-actions button,
+.gnmi-result button,
+.gnmi-next-links a { border-radius: 4px; }
+.gnmi-actions button[type="submit"],
+#gnmi-install,
+.gnmi-pager a:last-child { background: #006eaa; border-color: #006eaa; color: #fff; }
+.gnmi-actions button { margin-right: 0.6rem; }
+.gnmi-next-links { display: flex; gap: 0.8rem; flex-wrap: wrap; }
+.gnmi-next-links a {
+    padding: 0.45rem 0.85rem;
+    border: 1px solid #006eaa;
+    color: inherit;
+    text-decoration: none;
+    font-weight: 600;
+}
 .gnmi-dark .gnmi-error,
 [class*="layout-dark"] .gnmi-error { color: #ff8b8b; }

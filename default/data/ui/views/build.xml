@@ -13,7 +13,8 @@
       <html>
         <div class="gnmi-intro">
           <h2>Build</h2>
-          <p>This uses the values from the earlier steps. On a lab server it creates the indexes and the HEC token. Download the zip for another host, or install gnmic and the collector on this server as the Splunk user. The tables underneath show installer lines and any gNMI data that arrives.</p>
+          <p>This uses the values from the earlier steps. On a lab server it creates the indexes and the HEC token. Download the zip for another host, or install gnmic and the collector on this server as the Splunk user. The tables underneath show installer lines and any gNMI data that arrives. Click a row to drill into it.</p>
+          <p class="gnmi-next-links"><a class="btn" href="gnmi_operation">Open gNMI Operation</a> <a class="btn" href="gnmi_data">Open gNMI Data</a></p>
         </div>
         <div id="gnmi-page" data-step="build"></div>
         <div id="gnmi-form-host"></div>
@@ -37,7 +38,10 @@
           <refreshType>delay</refreshType>
         </search>
         <option name="count">100</option>
-        <option name="drilldown">none</option>
+        <option name="drilldown">row</option>
+        <drilldown>
+          <link target="_blank">search?q=search%20index%3D%22$ops_index|u$%22%20sourcetype%3D%22$setup_sourcetype|u$%22%20run%3D*&amp;earliest=-24h&amp;latest=now</link>
+        </drilldown>
         <option name="wrap">true</option>
       </table>
     </panel>
@@ -57,7 +61,10 @@
           <refreshType>delay</refreshType>
         </search>
         <option name="count">20</option>
-        <option name="drilldown">none</option>
+        <option name="drilldown">row</option>
+        <drilldown>
+          <link target="_blank">search?q=search%20index%3D%22$ops_index|u$%22%20sourcetype%3D%22$row.sourcetype|u$%22&amp;earliest=-24h&amp;latest=now</link>
+        </drilldown>
       </table>
     </panel>
   </row>
@@ -68,14 +75,18 @@
         <search>
           <query>index="$events_index$" earliest=-15m
 | head 20
-| table _time host _raw</query>
+| eval target='tags.source', subscription=name
+| table _time target subscription _raw</query>
           <earliest>-15m</earliest>
           <latest>now</latest>
           <refresh>15s</refresh>
           <refreshType>delay</refreshType>
         </search>
         <option name="count">10</option>
-        <option name="drilldown">none</option>
+        <option name="drilldown">row</option>
+        <drilldown>
+          <link>gnmi_data?form.target=$row.target|u$&amp;form.subscription=$row.subscription|u$</link>
+        </drilldown>
       </table>
     </panel>
     <panel id="gnmi_metrics_panel">
@@ -90,7 +101,10 @@
           <refreshType>delay</refreshType>
         </search>
         <option name="count">10</option>
-        <option name="drilldown">none</option>
+        <option name="drilldown">row</option>
+        <drilldown>
+          <link target="_blank">search?q=%7C%20mstats%20avg(_value)%20AS%20value%20WHERE%20index%3D%22$metrics_index|u$%22%20metric_name%3D%22$row.metric_name|u$%22%20span%3D1m%20BY%20extracted_source&amp;earliest=-60m&amp;latest=now&amp;display.page.search.tab=visualizations&amp;display.general.type=visualizations</link>
+        </drilldown>
       </table>
     </panel>
   </row>

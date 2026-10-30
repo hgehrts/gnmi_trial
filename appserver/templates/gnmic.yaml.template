@@ -119,10 +119,23 @@ subscriptions:
     encoding: json_ietf
     sample-interval: __GNMI_SAMPLE_INTERVAL__
 
+processors:
+  # JSON_IETF (RFC 7951) encodes 64-bit integers such as interface octets and
+  # memory bytes as JSON strings. Without this conversion the OTLP output treats
+  # them as string attributes and exports a constant 1. Values that are not
+  # numbers, such as oper-state up or down, stay strings.
+  numeric-values:
+    event-convert:
+      value-names:
+        - ".*"
+      type: float
+
 outputs:
   otlp:
     type: otlp
     endpoint: "__OTLP_ENDPOINT__"
+    event-processors:
+      - numeric-values
     protocol: grpc
     timeout: 10s
     batch-size: 1000
@@ -144,6 +157,8 @@ outputs:
     filename: "__GNMIC_EVENTS_FILE__"
     format: event
     split-events: true
+    event-processors:
+      - numeric-values
     rotation:
       max-size: 100
       max-age: 7
