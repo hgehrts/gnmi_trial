@@ -1,6 +1,6 @@
 # gNMI Trial Setup
 
-Version **1.5.0**. Lab helper for learning gNMI with Splunk Enterprise. It is not a production collector.
+Version **1.5.1**. Lab helper for learning gNMI with Splunk Enterprise. It is not a production collector.
 
 gnmic dials network devices with gNMI Subscribe over gRPC. Metrics go to the Splunk OpenTelemetry Collector with OTLP. Events are JSON lines that the collector tails. The collector posts both to Splunk HEC over HTTPS.
 
@@ -8,9 +8,9 @@ OpenConfig paths are the starting point for Cisco IOS XE, IOS XR, NX-OS, Junos, 
 
 ## Install the app
 
-Download `gnmi_trial-1.5.0.spl` from the [latest release](https://github.com/hgehrts/gnmi_trial/releases/latest). In Splunk Web, open **Apps → Manage Apps → Install app from file** and upload that file.
+Download `gnmi_trial-1.5.1.spl` from the [latest release](https://github.com/hgehrts/gnmi_trial/releases/latest). In Splunk Web, open **Apps → Manage Apps → Install app from file** and upload that file.
 
-The same file is in [`dist/gnmi_trial-1.5.0.spl`](dist/gnmi_trial-1.5.0.spl). `dist/gnmi_trial-1.5.0.spl.sha256` is its SHA-256 checksum. A `.spl` file is a tar.gz whose top directory is `gnmi_trial`.
+The same file is in [`dist/gnmi_trial-1.5.1.spl`](dist/gnmi_trial-1.5.1.spl). `dist/gnmi_trial-1.5.1.spl.sha256` is its SHA-256 checksum. A `.spl` file is a tar.gz whose top directory is `gnmi_trial`.
 
 To build it yourself:
 

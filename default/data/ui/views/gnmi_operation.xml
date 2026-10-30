@@ -11,7 +11,7 @@
     <input type="time" token="tr" searchWhenChanged="true">
       <label>Time range</label>
       <default>
-        <earliest>-60m@m</earliest>
+        <earliest>-15m</earliest>
         <latest>now</latest>
       </default>
     </input>
@@ -22,6 +22,7 @@
         <div class="gnmi-intro" id="gnmi-ops-page">
           <h2>How gnmic works and how it reports failures</h2>
           <p>For every target, gnmic opens one gRPC channel (TLS unless <code>insecure</code> is true), sends the username and password as gRPC metadata, and starts one gNMI Subscribe RPC per subscription. The device then streams updates. When a channel or an RPC fails, gnmic logs the error and tries again after the retry timer (30s in this lab). It keeps running while the device is down.</p>
+          <p>The dashboard starts at the last 15 minutes so a corrected configuration is not obscured by old errors. Select a longer time range when investigating the earlier history.</p>
           <h3>Three signals in Splunk</h3>
           <ul>
             <li><b>Runtime log</b> (index <code>gnmi_ops</code>, sourcetype <code>gnmi:runtime</code>). gnmic writes JSON lines with <code>level</code>, <code>msg</code>, <code>target</code>, <code>subscription</code>, and <code>err</code>. A connection problem appears as <code>level=ERROR msg="subscription receive error"</code>. The <code>err</code> text holds the gRPC status code, for example <code>code = Unavailable … dial tcp 10.0.0.1:9339: i/o timeout</code>. This app adds <code>grpc_code</code> and a plain <code>failure_cause</code>.</li>
